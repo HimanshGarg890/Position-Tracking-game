@@ -10,7 +10,7 @@ How to build
 source ~/qnx800/qnxsdp-env.sh
 
 # Clone the repository
-git clone https://gitlab.com/qnx/apps/camera_example1_callback.git && cd camera_example1_callback
+git clone https://gitlab.com/qnx/sample-apps/camera_example1_callback.git && cd camera_example1_callback
 
 # Build and install
 make install
