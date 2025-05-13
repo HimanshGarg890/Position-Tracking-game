@@ -40,6 +40,11 @@ scp ./nto/aarch64/o.le/camera_example1_callback qnxuser@$TARGET_HOST:/data/home/
 # ssh into the target
 ssh qnxuser@$TARGET_HOST
 
+# Make sure sensor service is running
+# Run "pidin ar | grep sensor" to see if sensor is running, if not run this as root:
+# su
+# sensor -U 521:521,1001 -b external -r /data/share/sensor -c /system/etc/system/config/camera_module3.conf
+
 # Run example; -u 1 means we want to use CAMERA_UNIT_1 which is specified in sensor_demo.conf
 camera_example1_callback -u 1
 ```
