@@ -4,7 +4,18 @@ This example source code shows how you can interact with the sensor service usin
 
 camera_example1_callback shows an example of how to use the callbackmode; every time there is a new buffer available, `processCameraData` gets called.
 
-How to build
+### How to build
+
+QNX SDP 8.0 is required. SDP and required packages can be installed with QNX Software Center.
+
+Required packages:
+
+- com.qnx.qnx800.target.sf.camapi
+- com.qnx.qnx800.target.sf.base
+- com.qnx.qnx800.target.mm.aoi
+- com.qnx.qnx800.target.mm.mmf.core
+
+Run the following commands to build the application:
 ```bash
 # Source your QNX SDP script
 source ~/qnx800/qnxsdp-env.sh
@@ -16,7 +27,8 @@ git clone https://gitlab.com/qnx/sample-apps/camera_example1_callback.git && cd 
 make install
 ```
 
-How to run
+### How to run
+
 ```bash
 # scp libraries and tests to the target (note, mDNS is configured from
 # /boot/qnx_config.txt and uses qnxpi.local by default).
