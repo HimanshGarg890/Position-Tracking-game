@@ -1,69 +1,80 @@
-# Import the OpenCV library for image processing
 import cv2
-# Import the MediaPipe library for pose detection
 import mediapipe as mp
 
-# Initialize the pose estimation model from MediaPipe
+mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
-pose = mp_pose.Pose()
 
-# Start capturing video from the default webcam (index 0)
+# Action detection functions
+def detect_step(landmarks):
+    right_knee_y = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE].y
+    right_hip_y = landmarks[mp_pose.PoseLandmark.RIGHT_HIP].y
+    return right_knee_y < right_hip_y
+
+def detect_kick(landmarks):
+    right_ankle_y = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE].y
+    right_knee_y = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE].y
+    return right_ankle_y < right_knee_y  # Ankle raised above knee
+
+def detect_punch(landmarks):
+    right_wrist_x = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].x
+    right_shoulder_x = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x
+    return right_wrist_x < right_shoulder_x  # Fist moved forward (to the left in image)
+
+def detect_jump(landmarks):
+    left_ankle_y = landmarks[mp_pose.PoseLandmark.LEFT_ANKLE].y
+    right_ankle_y = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE].y
+    left_hip_y = landmarks[mp_pose.PoseLandmark.LEFT_HIP].y
+    right_hip_y = landmarks[mp_pose.PoseLandmark.RIGHT_HIP].y
+    return (left_ankle_y < left_hip_y) and (right_ankle_y < right_hip_y)
+
+# Main camera logic
 cap = cv2.VideoCapture(0)
 
-# Loop continuously while the webcam is open
-while cap.isOpened():
-    # Read a frame from the webcam
-    ret, frame = cap.read()
-    # If the frame was not captured successfully, skip this iteration
-    if not ret:
-        continue
+with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-    # Convert the frame from BGR (OpenCV default) to RGB (required by MediaPipe)
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    # Process the RGB image using the pose model to detect human landmarks
-    result = pose.process(rgb)
+        # Convert image to RGB
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image.flags.writeable = False
 
-    # If pose landmarks are detected in the frame
-    if result.pose_landmarks:
-        # Print all the pose landmarks to the console
-        print(result.pose_landmarks)
+        # Process the image and detect the pose
+        results = pose.process(image)
 
-        # Get height and width of the frame for coordinate scaling
-        h, w, _ = frame.shape
-        # Loop through each detected landmark in the pose
-        for landmark in result.pose_landmarks.landmark:
-            # Convert normalized landmark coordinates to pixel coordinates
-            cx, cy = int(landmark.x * w), int(landmark.y * h)
-            # Draw a small blue circle at each landmark location
-            cv2.circle(frame, (cx, cy), 5, (255, 0, 0), -1)
+        # Convert back to BGR for display
+        image.flags.writeable = True
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        # Get the landmark data for the right wrist
-        right_wrist = result.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST]
-        # Get the landmark data for the right shoulder
-        right_shoulder = result.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+        if results.pose_landmarks:
+            landmarks = results.pose_landmarks.landmark
 
-        # Convert normalized coordinates of right wrist to pixels
-        wrist_x, wrist_y = int(right_wrist.x * w), int(right_wrist.y * h)
-        # Convert normalized coordinates of right shoulder to pixels
-        shoulder_x, shoulder_y = int(right_shoulder.x * w), int(right_shoulder.y * h)
+            mp_drawing.draw_landmarks(
+                image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-        # Draw a green circle at the right wrist
-        cv2.circle(frame, (wrist_x, wrist_y), 8, (0, 255, 0), -1)
-        # Draw a red circle at the right shoulder
-        cv2.circle(frame, (shoulder_x, shoulder_y), 8, (0, 0, 255), -1)
+            # Detect actions
+            if detect_step(landmarks):
+                cv2.putText(image, "Step Forward!", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                print("Step forward!")
 
-        # If the y-coordinate of the wrist is above the shoulder (hand raised)
-        if right_wrist.y < right_shoulder.y:
-            # Print message indicating hand is raised
-            print("Hand raised!")
+            if detect_kick(landmarks):
+                cv2.putText(image, "Kick!", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                print("Kick!")
 
-    # Display the frame with annotations in a window named "Pose Tracking"
-    cv2.imshow("Pose Tracking", frame)
-    # Wait for a key press; break the loop if 'q' is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+            if detect_punch(landmarks):
+                cv2.putText(image, "Punch!", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+                print("Punch!")
 
-# Release the webcam resource
+            if detect_jump(landmarks):
+                cv2.putText(image, "Jump!", (50, 250), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                print("Jump!")
+
+        # Display image
+        cv2.imshow('MediaPipe Pose', image)
+
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+
 cap.release()
-# Close all OpenCV windows
 cv2.destroyAllWindows()
