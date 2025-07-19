@@ -229,4 +229,13 @@ public class Player : MonoBehaviour
         yield return new WaitForSeconds(delay);
         knockbackVelocity = Vector2.zero;
     }
+
+    public void GameOver()
+    {
+        // Disable input actions
+        inputActions.Disable();
+
+
+        Debug.Log($"{gameObject.name} has been disabled for game over.");
+    }
 }

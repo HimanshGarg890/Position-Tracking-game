@@ -5,6 +5,7 @@ public class HealthSystem : MonoBehaviour
 {
     public int maxHealth = 50;
     private int currentHealth;
+    [SerializeField] private GameEnder gameEnder;
 
     [SerializeField] private Image healthBarImage;
 
@@ -14,6 +15,13 @@ public class HealthSystem : MonoBehaviour
         UpdateHealthBar();
     }
 
+    private void Update()
+    {
+        if (currentHealth <= 0)
+        {
+            EndGame();
+        }
+    }
     public void TakeDamage(int amount)
     {
         currentHealth = Mathf.Max(currentHealth - amount, 0);
@@ -39,5 +47,16 @@ public class HealthSystem : MonoBehaviour
             healthBarImage.fillAmount = (float) currentHealth / maxHealth;
         }
             
+    }
+
+    private void EndGame()
+    {
+        gameEnder.EndGame();
+
+
+    }
+    public int GetCurrentHealth()
+    {
+        return currentHealth;
     }
 }
