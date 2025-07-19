@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
@@ -7,7 +8,7 @@ public class Player2 : MonoBehaviour
 {
 
     private PlayerInputActions inputActions;
-    private Rigidbody2D rb;
+    public Rigidbody2D rb;
     [SerializeField] private Animator animator;
     [SerializeField] private Transform visual;
     [SerializeField] private Transform raycastOrigin;
@@ -21,6 +22,7 @@ public class Player2 : MonoBehaviour
     public bool actionHappening = false;
     private bool isWalking = false;
     private bool isJumping = false;
+    private Vector2 knockbackVelocity2 = Vector2.zero;
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -78,7 +80,8 @@ public class Player2 : MonoBehaviour
         {
             isWalking = false;
         }
-        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
+
+        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y) + knockbackVelocity2;
 
 
     }
@@ -122,11 +125,26 @@ public class Player2 : MonoBehaviour
         RaycastHit2D hitRight = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.right, 3.5f);
         RaycastHit2D hitLeft = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.left, 3.5f);
 
+
+
         if (hitLeft.collider.gameObject.TryGetComponent<Player>(out player1) || hitRight.collider.gameObject.TryGetComponent<Player>(out player1))
         {
             player1.OnPunched();
-        }
+            bool attackerFacingLeft = transform.rotation.eulerAngles.y == 180f ? true : false;
 
+            Vector2 knockbackVector = Vector2.zero;
+
+            if (attackerFacingLeft)
+            {
+                knockbackVector = new Vector2(Vector2.left.x, 0.01f);
+            }
+            else
+            {
+                knockbackVector = new Vector2(Vector2.right.x, 0.01f);
+            }
+
+            player1.ApplyKnockback(knockbackVector.normalized, 20f, 1);
+        }
     }
 
     void OnKick()
@@ -137,9 +155,19 @@ public class Player2 : MonoBehaviour
         }
         actionHappening = true;
         animator.SetBool("actionHappening", true);
-        animator.Play("KickAnimation");
 
-        //see if we actually hit the person
+        if (isGrounded)
+        {
+            animator.Play("KickAnimation");
+        }
+        else
+        {
+            animator.Play("JumpKickAnimation");
+            isJumping = false;
+        }
+
+
+            //see if we actually hit the person
 
         RaycastHit2D hitRight = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.right, 3.5f);
         RaycastHit2D hitLeft = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.left, 3.5f);
@@ -147,20 +175,54 @@ public class Player2 : MonoBehaviour
         if (hitLeft.collider.gameObject.TryGetComponent<Player>(out player1) || hitRight.collider.gameObject.TryGetComponent<Player>(out player1))
         {
             player1.OnKicked();
+            bool attackerFacingLeft = transform.rotation.eulerAngles.y == 180f ? true : false;
+
+            Vector2 knockbackVector = Vector2.zero;
+
+            if (attackerFacingLeft)
+            {
+                knockbackVector = new Vector2(Vector2.left.x, 0.01f);
+            }
+            else
+            { 
+                 knockbackVector = new Vector2(Vector2.right.x, 0.01f);
+            }
+
+            player1.ApplyKnockback(knockbackVector.normalized, 20f, 1);
         }
     }
     public void OnKicked()
     {
         GetComponent<HealthSystem>().TakeDamage(5);
+        actionHappening = true;
+        animator.SetBool("actionHappening", true);
+        animator.Play("HurtAnimation");
         //Debug.Log($"player 1 health is {health}");
+
     }
     public void OnPunched()
     {
         GetComponent<HealthSystem>().TakeDamage(3);
+        actionHappening = true;
+        animator.SetBool("actionHappening", true);
+        animator.Play("HurtAnimation");
         //Debug.Log($"player 1 health is {health}");
+
+       
     }
     public float GetHealth()
     {
         return health;
+    }
+    public void ApplyKnockback(Vector2 direction, float force, float duration)
+    {
+        knockbackVelocity2 = direction.normalized * force;
+        StartCoroutine(ResetKnockbackAfter(duration));
+    }
+
+    private IEnumerator ResetKnockbackAfter(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        knockbackVelocity2 = Vector2.zero;
     }
 }
