@@ -1,15 +1,18 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static UnityEditor.Experimental.GraphView.GraphView;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
 public class Player2 : MonoBehaviour
 {
+
     private PlayerInputActions inputActions;
     private Rigidbody2D rb;
     [SerializeField] private Animator animator;
     [SerializeField] private Transform visual;
-
+    [SerializeField] private Transform raycastOrigin;
+    [SerializeField] private Player player1;
 
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
@@ -23,6 +26,7 @@ public class Player2 : MonoBehaviour
     public Transform groundCheck;
     public float groundCheckRadius = 0.1f;
     public LayerMask groundLayer;
+    private float health = 20f;
 
     void Awake()
     {
@@ -49,10 +53,13 @@ public class Player2 : MonoBehaviour
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
         animator.SetBool("isGrounded", isGrounded);
 
-        if (!actionHappening)
+        if (!actionHappening && !isWalking)
         {
             animator.Play("IdleAnimation");
         }
+
+        //Debug.DrawRay(raycastOrigin.transform.position, Vector2.left * 100f, Color.red);
+        //Debug.DrawRay(raycastOrigin.transform.position, Vector2.right * 100f, Color.red);
     }
 
     void FixedUpdate()
@@ -72,6 +79,7 @@ public class Player2 : MonoBehaviour
             isWalking = false;
         }
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
+
 
     }
 
@@ -104,6 +112,16 @@ public class Player2 : MonoBehaviour
         animator.SetBool("actionHappening", true);
         animator.Play("JabAnimation");
 
+        //see if we actually hit the person
+
+        RaycastHit2D hitRight = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.right, 3.5f);
+        RaycastHit2D hitLeft = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.left, 3.5f);
+
+        if (hitLeft.collider.gameObject.TryGetComponent<Player>(out player1) || hitRight.collider.gameObject.TryGetComponent<Player>(out player1))
+        {
+            player1.OnPunched();
+        }
+
     }
 
     void OnKick()
@@ -115,7 +133,29 @@ public class Player2 : MonoBehaviour
         actionHappening = true;
         animator.SetBool("actionHappening", true);
         animator.Play("KickAnimation");
+
+        //see if we actually hit the person
+
+        RaycastHit2D hitRight = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.right, 3.5f);
+        RaycastHit2D hitLeft = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.left, 3.5f);
+
+        if (hitLeft.collider.gameObject.TryGetComponent<Player>(out player1) || hitRight.collider.gameObject.TryGetComponent<Player>(out player1))
+        {
+            player1.OnKicked();
+        }
     }
-
-
+    public void OnKicked()
+    {
+        health -= 5f;
+        Debug.Log($"player 2 health is {health}");
+    }
+    public void OnPunched()
+    {
+        health -= 3f;
+        Debug.Log($"player 2 health is {health}");
+    }
+    public float GetHealth()
+    {
+        return health;
+    }
 }
