@@ -17,6 +17,7 @@ public class Player2 : MonoBehaviour
     private float moveInput;
     private bool isGrounded = true;
     public bool actionHappening = false;
+    private bool isWalking = false;
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -58,14 +59,19 @@ public class Player2 : MonoBehaviour
     {
         if (moveInput < 0)
         {
-            visual.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            isWalking = true;
+            transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        }
+        else if (moveInput > 0)
+        {
+            transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+            isWalking = true;
         }
         else
         {
-            visual.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+            isWalking = false;
         }
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
-
 
     }
 
