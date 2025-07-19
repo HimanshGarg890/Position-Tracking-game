@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using static UnityEditor.Experimental.GraphView.GraphView;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
@@ -21,19 +20,20 @@ public class Player2 : MonoBehaviour
     private bool isGrounded = true;
     public bool actionHappening = false;
     private bool isWalking = false;
+    private bool isJumping = false;
 
     [Header("Ground Check")]
     public Transform groundCheck;
     public float groundCheckRadius = 0.1f;
     public LayerMask groundLayer;
-    private float health = 20f;
+    private float health = 50f;
 
     void Awake()
     {
         inputActions = new PlayerInputActions();
 
         rb = GetComponent<Rigidbody2D>();
-
+        
 
         // Hook up input callbacks
         inputActions.Player2.Jump.performed += ctx => OnJump();
@@ -50,10 +50,10 @@ public class Player2 : MonoBehaviour
         animator.SetFloat("Speed", Mathf.Abs(moveInput));
 
         // Ground check
-        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        isGrounded = Physics2D.Raycast(groundCheck.position, Vector2.down, 3.5f);
         animator.SetBool("isGrounded", isGrounded);
 
-        if (!actionHappening && !isWalking)
+        if (!actionHappening && !isWalking && !isJumping)
         {
             animator.Play("IdleAnimation");
         }
@@ -70,7 +70,7 @@ public class Player2 : MonoBehaviour
             transform.rotation = Quaternion.Euler(0f, 180f, 0f);
         }
         else if (moveInput > 0)
-        {
+        {   
             transform.rotation = Quaternion.Euler(0f, 0f, 0f);
             isWalking = true;
         }
@@ -87,19 +87,24 @@ public class Player2 : MonoBehaviour
     {
         Debug.Log(isGrounded);
 
-        if (actionHappening)
+        if (isGrounded)
         {
-            return;
+           
+            isJumping = true;
+            //animator.SetBool("actionHappening", true);
+
+
+
+            rb.linearVelocity = new Vector2(rb.linearVelocityX, jumpForce);
+
+            animator.Play("JumpAnimation");
         }
-        actionHappening = true;
-        animator.SetBool("actionHappening", true);
-
-
-
-        rb.linearVelocity = new Vector2(rb.linearVelocityX, jumpForce);
-
-        animator.Play("JumpAnimation");
-
+        else
+        {
+            isJumping = false;
+        }
+        
+        
     }
 
     void OnPunch()
@@ -146,13 +151,13 @@ public class Player2 : MonoBehaviour
     }
     public void OnKicked()
     {
-        health -= 5f;
-        Debug.Log($"player 2 health is {health}");
+        GetComponent<HealthSystem>().TakeDamage(5);
+        //Debug.Log($"player 1 health is {health}");
     }
     public void OnPunched()
     {
-        health -= 3f;
-        Debug.Log($"player 2 health is {health}");
+        GetComponent<HealthSystem>().TakeDamage(3);
+        //Debug.Log($"player 1 health is {health}");
     }
     public float GetHealth()
     {
