@@ -7,13 +7,16 @@ public class Player : MonoBehaviour
 {
     private PlayerInputActions inputActions;
     private Rigidbody2D rb;
-    private Animator animator;
+    [SerializeField] private Animator animator;
+    [SerializeField] private Transform visual;
+
 
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
     public float jumpForce = 10f;
     private float moveInput;
     private bool isGrounded = true;
+    public bool actionHappening = false;
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -25,7 +28,7 @@ public class Player : MonoBehaviour
         inputActions = new PlayerInputActions();
 
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
+        
 
         // Hook up input callbacks
         inputActions.Player1.Jump.performed += ctx => OnJump();
@@ -48,6 +51,14 @@ public class Player : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (moveInput < 0)
+        {
+            visual.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        }
+        else
+        {
+            visual.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+        }
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
     }
 
@@ -55,21 +66,39 @@ public class Player : MonoBehaviour
     {
         Debug.Log(isGrounded);
 
+        if (actionHappening)
+        {
+            return;
+        }
+        actionHappening = true;
+
         if (isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocityX, jumpForce);
-            
+
             animator.SetTrigger("Jump");
         }
     }
 
     void OnPunch()
     {
+        if (actionHappening)
+        {
+            return;
+        }
+        actionHappening = true;
         animator.SetTrigger("Punch");
     }
 
     void OnKick()
     {
+        if (actionHappening)
+        {
+            return;
+        }
+        actionHappening = true;
         animator.SetTrigger("Kick");
     }
+
+    
 }
