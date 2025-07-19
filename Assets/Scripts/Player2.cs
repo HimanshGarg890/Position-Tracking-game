@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
-public class Player : MonoBehaviour
+public class Player2 : MonoBehaviour
 {
     private PlayerInputActions inputActions;
     private Rigidbody2D rb;
@@ -28,12 +28,12 @@ public class Player : MonoBehaviour
         inputActions = new PlayerInputActions();
 
         rb = GetComponent<Rigidbody2D>();
-        
+
 
         // Hook up input callbacks
-        inputActions.Player1.Jump.performed += ctx => OnJump();
-        inputActions.Player1.Punch.performed += ctx => OnPunch();
-        inputActions.Player1.Kick.performed += ctx => OnKick();
+        inputActions.Player2.Jump.performed += ctx => OnJump();
+        inputActions.Player2.Punch.performed += ctx => OnPunch();
+        inputActions.Player2.Kick.performed += ctx => OnKick();
     }
 
     void OnEnable() => inputActions.Enable();
@@ -41,7 +41,7 @@ public class Player : MonoBehaviour
 
     void Update()
     {
-        moveInput = inputActions.Player1.Move.ReadValue<float>();
+        moveInput = inputActions.Player2.Move.ReadValue<float>();
         animator.SetFloat("Speed", Mathf.Abs(moveInput));
 
         // Ground check
@@ -85,7 +85,7 @@ public class Player : MonoBehaviour
         rb.linearVelocity = new Vector2(rb.linearVelocityX, jumpForce);
 
         animator.Play("JumpAnimation");
-        
+
     }
 
     void OnPunch()
@@ -111,5 +111,5 @@ public class Player : MonoBehaviour
         animator.Play("KickAnimation");
     }
 
-    
+
 }

@@ -1,8 +1,8 @@
 using UnityEngine;
 
-public class animationPauser : MonoBehaviour
+public class animationPauser2 : MonoBehaviour
 {
-    [SerializeField] private Player player;
+    [SerializeField] private Player2 player;
     [SerializeField] private Animator animator;
 
     private void ResetActionHappening()
