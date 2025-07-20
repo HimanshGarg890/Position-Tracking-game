@@ -279,11 +279,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1159326112915603446, guid: a608ce2a6c4c85848826cbf4914b5834, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 325
+      value: 220
       objectReference: {fileID: 0}
     - target: {fileID: 1159326112915603446, guid: a608ce2a6c4c85848826cbf4914b5834, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 208
+      value: 144
       objectReference: {fileID: 0}
     - target: {fileID: 4758318976505695396, guid: a608ce2a6c4c85848826cbf4914b5834, type: 3}
       propertyPath: m_Name
@@ -791,6 +791,51 @@ MonoBehaviour:
   maxHealth: 50
   gameEnder: {fileID: 1881695647}
   healthBarImage: {fileID: 738656773}
+--- !u!1 &438872006
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 438872008}
+  - component: {fileID: 438872007}
+  m_Layer: 0
+  m_Name: InputBridge
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &438872007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 438872006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 280e50fd0c0223e41a5f9864ea6d6d9e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  websocketUrl: ws://localhost:8765
+--- !u!4 &438872008
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 438872006}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5.291215, y: -1.1502454, z: -0.036422163}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &478036003
 GameObject:
   m_ObjectHideFlags: 0
@@ -2720,11 +2765,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1159326112915603446, guid: a608ce2a6c4c85848826cbf4914b5834, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -321
+      value: -214
       objectReference: {fileID: 0}
     - target: {fileID: 1159326112915603446, guid: a608ce2a6c4c85848826cbf4914b5834, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 206
+      value: 147
       objectReference: {fileID: 0}
     - target: {fileID: 4758318976505695396, guid: a608ce2a6c4c85848826cbf4914b5834, type: 3}
       propertyPath: m_Name
@@ -2842,3 +2887,4 @@ SceneRoots:
   - {fileID: 1881695648}
   - {fileID: 2116817890}
   - {fileID: 121625494}
+  - {fileID: 438872008}

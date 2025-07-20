@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -31,40 +32,82 @@ public class Player : MonoBehaviour
     public float groundCheckRadius = 0.1f;
     public LayerMask groundLayer;
     private float health = 50f;
+    PoseDataReceiver inputs = PoseDataReceiver.Instance;
 
     void Awake()
     {
+
+ 
+
         inputActions = new PlayerInputActions();
 
         rb = GetComponent<Rigidbody2D>();
+
         
 
         // Hook up input callbacks
-        inputActions.Player1.Jump.performed += ctx => OnJump();
-        inputActions.Player1.Punch.performed += ctx => OnPunch();
-        inputActions.Player1.Kick.performed += ctx => OnKick();
+        //inputActions.Player1.Jump.performed += ctx => OnJump();
+        //inputActions.Player1.Punch.performed += ctx => OnPunch();
+        //inputActions.Player1.Kick.performed += ctx => OnKick();
     }
 
     void OnEnable() => inputActions.Enable();
     void OnDisable() => inputActions.Disable();
 
+    private void Start()
+    {
+        StartCoroutine(WaitForPoseData());
+    }
+
     void Update()
     {
-        moveInput = inputActions.Player1.Move.ReadValue<float>();
-        animator.SetFloat("Speed", Mathf.Abs(moveInput));
 
-        // Ground check
-        isGrounded = Physics2D.Raycast(groundCheck.position, Vector2.down, 3.5f);
-        animator.SetBool("isGrounded", isGrounded);
-
-        if (!actionHappening && !isWalking && !isJumping)
+        try
         {
-            animator.Play("IdleAnimation");
+            moveInput = inputs.CurrentInputs.move;
+            animator.SetFloat("Speed", Mathf.Abs(moveInput));
+        
+
+
+
+            // Poll pose input from WebSocket
+            if (PoseDataReceiver.Instance != null)
+            {
+            
+
+                // Handle jump input
+                if (inputs.CurrentInputs.jump && isGrounded && !isJumping)
+                {
+                    Debug.Log("Jump called!");
+                    OnJump();
+                }
+
+                // Handle punch input
+                if (inputs.CurrentInputs.punch != 0 && !actionHappening)
+                {
+                    Debug.Log("Punch called!");
+                    OnPunch(inputs.CurrentInputs.punch);
+                }
+
+                // Handle kick input
+                if (inputs.CurrentInputs.kick != 0 && !actionHappening)
+                {
+                    Debug.Log("Kick called!");
+                    OnKick(inputs.CurrentInputs.kick);
+                }
+
+
+
+            }
+
+        }
+        catch (NullReferenceException)
+        {
+
         }
 
-        //Debug.DrawRay(raycastOrigin.transform.position, Vector2.left * 100f, Color.red);
-        //Debug.DrawRay(raycastOrigin.transform.position, Vector2.right * 100f, Color.red);
     }
+
 
     void FixedUpdate()
     {
@@ -115,12 +158,22 @@ public class Player : MonoBehaviour
         
     }
 
-    void OnPunch()
+    void OnPunch(int dir)
     {
         if (actionHappening)
         {
             return;
         }
+
+        if (dir == 1)
+        {
+            transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+        }
+        else
+        {
+            transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        }
+
         actionHappening = true;
         animator.SetBool("actionHappening", true);
         animator.Play("JabAnimation");
@@ -152,12 +205,22 @@ public class Player : MonoBehaviour
         }
     }
 
-    void OnKick()
+    void OnKick(int dir)
     {
         if (actionHappening)
         {
             return;
         }
+
+        if (dir == 1)
+        {
+            transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+        }
+        else
+        {
+            transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        }
+
         actionHappening = true;
         animator.SetBool("actionHappening", true);
 
@@ -238,4 +301,18 @@ public class Player : MonoBehaviour
 
         Debug.Log($"{gameObject.name} has been disabled for game over.");
     }
+
+    private IEnumerator WaitForPoseData()
+    {
+        while (PoseDataReceiver.Instance == null || !PoseDataReceiver.Instance.IsReady)
+        {
+            yield return null;
+        }
+
+        // Now it’s safe to access input data
+        var inputs = PoseDataReceiver.Instance.CurrentInputs;
+
+        // You could use inputs here or periodically in Update
+    }
+
 }
