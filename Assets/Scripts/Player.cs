@@ -20,7 +20,10 @@ public class Player : MonoBehaviour
     public float moveSpeed = 5f;
     public float jumpForce = 10f;
     private float moveInput;
-    private bool isGrounded = true;
+    private bool jumpInput;
+    private int punchInput;
+    private int kickInput;
+    private bool isGrounded = true; 
     public bool actionHappening = false;
     private bool isWalking = false;
     private bool isJumping = false;
@@ -32,23 +35,12 @@ public class Player : MonoBehaviour
     public float groundCheckRadius = 0.1f;
     public LayerMask groundLayer;
     private float health = 50f;
-    PoseDataReceiver inputs = PoseDataReceiver.Instance;
+    private PoseDataReceiver inputBridge;
 
     void Awake()
     {
-
- 
-
         inputActions = new PlayerInputActions();
-
         rb = GetComponent<Rigidbody2D>();
-
-        
-
-        // Hook up input callbacks
-        //inputActions.Player1.Jump.performed += ctx => OnJump();
-        //inputActions.Player1.Punch.performed += ctx => OnPunch();
-        //inputActions.Player1.Kick.performed += ctx => OnKick();
     }
 
     void OnEnable() => inputActions.Enable();
@@ -56,58 +48,51 @@ public class Player : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(WaitForPoseData());
+        //StartCoroutine(WaitForPoseData());
+        inputBridge = PoseDataReceiver.Instance;
     }
 
     void Update()
     {
-
-        try
+        if (PoseDataReceiver.Instance == null || !PoseDataReceiver.Instance.IsReady)
         {
-            moveInput = inputs.CurrentInputs.move;
-            animator.SetFloat("Speed", Mathf.Abs(moveInput));
-        
+            return; // Wait until PoseDataReceiver is ready
+        }
 
+        moveInput = inputBridge.moveInput;
+        jumpInput = inputBridge.jumpInput;
+        punchInput = inputBridge.punchInput;
+        kickInput = inputBridge.kickInput;
 
+        //Debug.Log($"Move input: {inputs.CurrentInputs.move}");  
+        animator.SetFloat("Speed", Mathf.Abs(moveInput));
 
-            // Poll pose input from WebSocket
-            if (PoseDataReceiver.Instance != null)
+        // Poll pose input from WebSocket
+        if (PoseDataReceiver.Instance != null)
+        {
+            // Handle jump input
+            if (jumpInput && isGrounded && !isJumping)
             {
-            
+                Debug.Log("Jump called!");
 
-                // Handle jump input
-                if (inputs.CurrentInputs.jump && isGrounded && !isJumping)
-                {
-                    Debug.Log("Jump called!");
-                    OnJump();
-                }
-
-                // Handle punch input
-                if (inputs.CurrentInputs.punch != 0 && !actionHappening)
-                {
-                    Debug.Log("Punch called!");
-                    OnPunch(inputs.CurrentInputs.punch);
-                }
-
-                // Handle kick input
-                if (inputs.CurrentInputs.kick != 0 && !actionHappening)
-                {
-                    Debug.Log("Kick called!");
-                    OnKick(inputs.CurrentInputs.kick);
-                }
-
-
-
+                OnJump();
             }
 
-        }
-        catch (NullReferenceException)
-        {
+            // Handle punch input
+            if (punchInput != 0 && !actionHappening)
+            {
+                Debug.Log("Punch called!");
+                OnPunch(punchInput);
+            }
 
+            // Handle kick input
+            if (kickInput != 0 && !actionHappening)
+            {
+                Debug.Log("Kick called!");
+                OnKick(kickInput);
+            }
         }
-
     }
-
 
     void FixedUpdate()
     {
@@ -126,12 +111,7 @@ public class Player : MonoBehaviour
             isWalking = false;
         }
 
-        
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y) + knockbackVelocity;
-        
-        
-
-
     }
 
     void OnJump()
@@ -140,22 +120,14 @@ public class Player : MonoBehaviour
 
         if (isGrounded)
         {
-           
             isJumping = true;
-            //animator.SetBool("actionHappening", true);
-
-
-
             rb.linearVelocity = new Vector2(rb.linearVelocityX, jumpForce);
-
             animator.Play("JumpAnimation");
         }
         else
         {
             isJumping = false;
         }
-        
-        
     }
 
     void OnPunch(int dir)
@@ -179,11 +151,8 @@ public class Player : MonoBehaviour
         animator.Play("JabAnimation");
 
         //see if we actually hit the person
-
         RaycastHit2D hitRight = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.right, 3.5f);
         RaycastHit2D hitLeft = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.left, 3.5f);
-
-
 
         if (hitLeft.collider.gameObject.TryGetComponent<Player2>(out player2) || hitRight.collider.gameObject.TryGetComponent<Player2>(out player2))
         {
@@ -205,7 +174,7 @@ public class Player : MonoBehaviour
         }
     }
 
-    void OnKick(int dir)
+    void OnKick(float dir)
     {
         if (actionHappening)
         {
@@ -234,9 +203,7 @@ public class Player : MonoBehaviour
             isJumping = false;
         }
 
-
         //see if we actually hit the person
-
         RaycastHit2D hitRight = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.right, 3.5f);
         RaycastHit2D hitLeft = Physics2D.Raycast(raycastOrigin.transform.position, Vector2.left, 3.5f);
 
@@ -266,7 +233,6 @@ public class Player : MonoBehaviour
         actionHappening = true;
         animator.SetBool("actionHappening", true);
         animator.Play("HurtAnimation");
-        //Debug.Log($"player 1 health is {health}");
     }
     public void OnPunched()
     {
@@ -274,7 +240,6 @@ public class Player : MonoBehaviour
         actionHappening = true;
         animator.SetBool("actionHappening", true);
         animator.Play("HurtAnimation");
-        //Debug.Log($"player 1 health is {health}");
     }
     public float GetHealth()
     {
@@ -297,8 +262,6 @@ public class Player : MonoBehaviour
     {
         // Disable input actions
         inputActions.Disable();
-
-
         Debug.Log($"{gameObject.name} has been disabled for game over.");
     }
 
@@ -314,5 +277,4 @@ public class Player : MonoBehaviour
 
         // You could use inputs here or periodically in Update
     }
-
 }

@@ -8,15 +8,23 @@ public class PoseDataReceiver : MonoBehaviour
 {
     public ControlInputs CurrentInputs { get; private set; } = new ControlInputs();
     public bool IsReady = false;
+    private bool pythonGuiReady = false; // <-- Add this line
 
     public static PoseDataReceiver Instance { get; private set; }
 
     private WebSocket websocket;
     private Process pythonProcess;
+    private Coroutine heartbeatCoroutine;
 
     [SerializeField] private string websocketUrl = "ws://localhost:8765"; // Python server address
     [SerializeField] private float connectionRetryDelay = 2f;
     [SerializeField] private int maxRetries = 10;
+
+    // Public variables for direct input polling
+    public bool jumpInput;
+    public float moveInput;
+    public int punchInput;
+    public int kickInput;
 
     private void LaunchPythonScript()
     {
@@ -63,7 +71,7 @@ public class PoseDataReceiver : MonoBehaviour
         }
     }
 
-    private void Start()
+    private void Awake()
     {
         // Singleton pattern
         if (Instance != null && Instance != this)
@@ -74,11 +82,16 @@ public class PoseDataReceiver : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    private void Start()
+    {
+        
 
         LaunchPythonScript();
 
-        // Start connection attempt after a delay to let Python start
-        StartCoroutine(ConnectAfterDelay(3f));
+        // Start connection attempt after a delay to let Python start (increased delay)
+        StartCoroutine(ConnectAfterDelay(5f));
     }
 
     private IEnumerator ConnectAfterDelay(float delay)
@@ -154,12 +167,23 @@ public class PoseDataReceiver : MonoBehaviour
             websocket = null;
         }
 
+        // Stop existing heartbeat if running
+        if (heartbeatCoroutine != null)
+        {
+            StopCoroutine(heartbeatCoroutine);
+            heartbeatCoroutine = null;
+        }
+
         websocket = new WebSocket(websocketUrl);
 
         websocket.OnOpen += (sender, e) =>
         {
+            UnityEngine.Debug.Log($"WebSocket OPENED at {DateTime.Now}");
             UnityEngine.Debug.Log("WebSocket connection opened (Unity successfully connected to Python).");
-            IsReady = true;
+            // Only set IsReady if pythonGuiReady is true
+            if (pythonGuiReady)
+                IsReady = true;
+            heartbeatCoroutine = StartCoroutine(SendHeartbeat());
         };
 
         websocket.OnError += (sender, e) =>
@@ -170,17 +194,58 @@ public class PoseDataReceiver : MonoBehaviour
 
         websocket.OnClose += (sender, e) =>
         {
-            UnityEngine.Debug.Log($"WebSocket connection closed. Code: {e.Code}, Reason: {e.Reason}");
+            UnityEngine.Debug.Log($"WebSocket CLOSED at {DateTime.Now}. Code: {e.Code}, Reason: {e.Reason}, WasClean: {e.WasClean}");
             IsReady = false;
+            if (heartbeatCoroutine != null)
+            {
+                StopCoroutine(heartbeatCoroutine);
+                heartbeatCoroutine = null;
+            }
         };
 
         websocket.OnMessage += (sender, e) =>
         {
             if (e.IsText)
             {
-                HandleIncomingInput(e.Data);
+                if (e.Data == "pong")
+                {
+                    UnityEngine.Debug.Log("Heartbeat pong received");
+                }
+                else if (e.Data == "gui_ready") // <-- Listen for GUI ready message
+                {
+                    pythonGuiReady = true;
+                    UnityEngine.Debug.Log("Python GUI is ready.");
+                    // Only set IsReady if WebSocket is open
+                    if (websocket != null && websocket.ReadyState == WebSocketState.Open)
+                        IsReady = true;
+                }
+                else
+                {
+                    HandleIncomingInput(e.Data);
+                }
             }
         };
+    }
+
+    private IEnumerator SendHeartbeat()
+    {
+        while (websocket != null && websocket.ReadyState == WebSocketState.Open)
+        {
+            yield return new WaitForSeconds(30f); // Send heartbeat every 30 seconds
+            try
+            {
+                if (websocket != null && websocket.ReadyState == WebSocketState.Open)
+                {
+                    websocket.Send("ping");
+                    UnityEngine.Debug.Log("Heartbeat ping sent");
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"Heartbeat failed: {ex.Message}");
+                break;
+            }
+        }
     }
 
     private void Update()
@@ -202,6 +267,11 @@ public class PoseDataReceiver : MonoBehaviour
             if (newInputs != null)
             {
                 CurrentInputs = newInputs;
+                // Update public variables for direct polling
+                jumpInput = newInputs.jump;
+                moveInput = newInputs.move;
+                punchInput = newInputs.punch;
+                kickInput = newInputs.kick;
             }
         }
         catch (Exception ex)
@@ -223,6 +293,12 @@ public class PoseDataReceiver : MonoBehaviour
 
     private void Cleanup()
     {
+        if (heartbeatCoroutine != null)
+        {
+            StopCoroutine(heartbeatCoroutine);
+            heartbeatCoroutine = null;
+        }
+
         if (websocket != null)
         {
             try
@@ -251,8 +327,9 @@ public class PoseDataReceiver : MonoBehaviour
         }
     }
 
+
     // Matches the structure of the JSON sent from Python
-    [Serializable]
+    //[Serializable]
     public class ControlInputs
     {
         public bool jump = false;
